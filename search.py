@@ -1,3 +1,5 @@
+import os
+
 class FileSystem:
     def __init__(self, directry):
         self.directry = directry
@@ -11,8 +13,14 @@ class FileSystem:
         return cleaned_lines
     
     def search(self):
-        return 'results'
+        for filename in os.listdir(self.directry):
+            file_path = os.path.join(self.directry, filename)
 
-file_system = FileSystem('/files')
+            if os.path.isfile(file_path):
+                with open(file_path, 'r') as file:
+                    content = file.read()
+                    print(f"File: {filename}\nContent:\n{content}\n")
 
+
+file_system = FileSystem('/workspaces/file-system-search-engine/files')
 print(file_system.search())
