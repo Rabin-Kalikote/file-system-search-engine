@@ -36,15 +36,92 @@ class FileSystem:
                 data = data | self._index_files(item_path)         
         return data
 
+    def _tokenize_query(self, query):
+        ''' Returns the list of tokens/clauses '''
+        return query.strip('()').split(' ')
 
-    
-
-    
     def search(self, query):
-        results = self.search_in_folder(self.directry, query)
+        tokens = query.split(' ')
+
+        results = []
+        for token in tokens:
+            if token in self.data:
+                results.append(self.data[token])
+
         return results
 
 
-file_system = FileSystem('/workspaces/file-system-search-engine/files')
 
-print(file_system.data)
+
+class Clause:
+    def __init__(self, body):
+        self.tokens = self._tokenize(self)
+        self.body = body
+
+    def is_required(self):
+        return self.body[0] == '+'
+
+    def _tokenize(self):
+        token_clause = self.body
+        tokens = []
+
+        #clean the current clause's + and ()
+        if token_clause[0] == '+':
+            token_clause = token_clause[1:]
+        if token_clause[0] == '(':
+            token_clause = token_clause[1:]
+        if token_clause[-1] == ')':
+            token_clause = token_clause[:-1]
+
+        this_token = ''
+        paren_count = 0
+        for char in token_clause:
+            if char == '(' and paren_count == 0:
+                if this_token.strip() and this_token.strip() != '+':
+                    tokens.append(this_token.strip())
+                if this_token.strip() == '+':
+                    this_token = '+'
+                else:
+                    this_token = char
+                paren_count += 1
+            elif char == '(':
+                this_token += char
+                paren_count += 1
+            elif char == ')':
+                this_token += char
+                paren_count -= 1
+                if paren_count == 0:
+                    tokens.append(this_token.strip())
+                    this_token = ''
+            elif char == '+' and paren_count == 0:
+                if this_token.strip():
+                    tokens.append(this_token.strip())
+                this_token = char
+            else:
+                this_token += char
+        
+        if this_token.strip():
+            tokens.append(this_token.strip())
+
+        return tokens
+
+
+
+
+directry = '/workspaces/file-system-search-engine/files'
+file_system = FileSystem(directry)
+
+searching = 1
+while searching == 1:
+    print('\nMagic Search\n------------\n')
+    print(f"Current directory is:\n{directry}\n")
+
+    query = input("Let's start searching!\nExample: 'biz +foo +bar +(bat baz) bop' translates to 'foo' and 'bar' and (either 'bat' or 'baz') and optionally biz or bop.\n\nWhat do you want to search for? ")
+    results = file_system.search(query)
+
+    print('Results:\n---------\n')
+    for item in file_system.search(query):
+        print(item)
+
+
+    searching = int(input('Search again? (Press 1 as Yes) '))
