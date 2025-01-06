@@ -1,5 +1,76 @@
 import os
 
+class Clause:
+    def __init__(self, body):
+        self.body = body
+        self.tokens = self._tokenize()
+        self.indexes = self._get_search_indexes()
+
+    def is_required(self):
+        return self.body[0] == '+'
+
+    def _tokenize(self):
+        token_clause = self.body
+        tokens = []
+
+        #clean the current clause's + and ()
+        if token_clause[0] == '+':
+            token_clause = token_clause[1:]
+        if token_clause[0] == '(':
+            token_clause = token_clause[1:]
+        if token_clause[-1] == ')':
+            token_clause = token_clause[:-1]
+
+        # break into sub-clauses and add as children of this clause (self)
+        def add_token(token):
+            if token[-1] == ')':
+                tokens.append(Clause(token))
+            else:
+                tokens.append(token)
+        current = ''
+        paren_count = 0
+
+        for i, char in enumerate(token_clause):
+            if char == '(' and paren_count == 0:
+                # start of a new parenthetical expression
+                if current.strip():
+                    # check if current is just a '+', if so, don't append yet
+                    if current.strip() != '+':
+                        add_token(current.strip())
+                        current = char
+                    else:
+                        current += char
+                else:
+                    current = char
+                paren_count += 1
+            elif char == '(':
+                # nested opening parenthesis
+                current += char
+                paren_count += 1
+            elif char == ')':
+                # closing parenthesis
+                current += char
+                paren_count -= 1
+                if paren_count == 0:
+                    add_token(current.strip())
+                    current = ''
+            else:
+                current += char
+        
+        # add the last term if there is one
+        if current.strip():
+            add_token(current.strip())
+
+        return tokens
+    
+    def _get_search_indexes(self):
+        required = []
+        optional = []
+        for token in self.tokens:
+            if type(token) == str:
+                #base case
+
+
 class FileSystem:
     def __init__(self, directry):
         self.directry = directry
@@ -41,7 +112,7 @@ class FileSystem:
         return query.strip('()').split(' ')
 
     def search(self, query):
-        tokens = query.split(' ')
+        search_clause = Clause(query)
 
         results = []
         for token in tokens:
@@ -51,62 +122,7 @@ class FileSystem:
         return results
 
 
-
-
-class Clause:
-    def __init__(self, body):
-        self.tokens = self._tokenize(self)
-        self.body = body
-
-    def is_required(self):
-        return self.body[0] == '+'
-
-    def _tokenize(self):
-        token_clause = self.body
-        tokens = []
-
-        #clean the current clause's + and ()
-        if token_clause[0] == '+':
-            token_clause = token_clause[1:]
-        if token_clause[0] == '(':
-            token_clause = token_clause[1:]
-        if token_clause[-1] == ')':
-            token_clause = token_clause[:-1]
-
-        this_token = ''
-        paren_count = 0
-        for char in token_clause:
-            if char == '(' and paren_count == 0:
-                if this_token.strip() and this_token.strip() != '+':
-                    tokens.append(this_token.strip())
-                if this_token.strip() == '+':
-                    this_token = '+'
-                else:
-                    this_token = char
-                paren_count += 1
-            elif char == '(':
-                this_token += char
-                paren_count += 1
-            elif char == ')':
-                this_token += char
-                paren_count -= 1
-                if paren_count == 0:
-                    tokens.append(this_token.strip())
-                    this_token = ''
-            elif char == '+' and paren_count == 0:
-                if this_token.strip():
-                    tokens.append(this_token.strip())
-                this_token = char
-            else:
-                this_token += char
-        
-        if this_token.strip():
-            tokens.append(this_token.strip())
-
-        return tokens
-
-
-
+print(Clause('(a (b +(c d) e +f) +(g h) i)').tokens)
 
 directry = '/workspaces/file-system-search-engine/files'
 file_system = FileSystem(directry)
