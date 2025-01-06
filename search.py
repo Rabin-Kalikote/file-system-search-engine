@@ -4,7 +4,6 @@ class Clause:
     def __init__(self, body):
         self.body = body
         self.tokens = self._tokenize()
-        self.indexes = self._get_search_indexes()
 
     def is_required(self):
         return self.body[0] == '+'
@@ -62,14 +61,8 @@ class Clause:
             add_token(current.strip())
 
         return tokens
-    
-    def _get_search_indexes(self):
-        required = []
-        optional = []
-        for token in self.tokens:
-            if type(token) == str:
-                #base case
 
+print(Clause('(a (b +(c d) e +f) +(g h) i)').tokens)
 
 class FileSystem:
     def __init__(self, directry):
@@ -107,22 +100,38 @@ class FileSystem:
                 data = data | self._index_files(item_path)         
         return data
 
-    def _tokenize_query(self, query):
-        ''' Returns the list of tokens/clauses '''
-        return query.strip('()').split(' ')
-
     def search(self, query):
         search_clause = Clause(query)
 
-        results = []
-        for token in tokens:
-            if token in self.data:
-                results.append(self.data[token])
+        required = []
+        optional = []
 
-        return results
+        #print(search_clause.tokens)
 
+        for token in search_clause.tokens:
+            if type(token) == str:
+                if token[0] == '+':
+                    required = set.intersection(*[set(list) for list in [required, self.data[token[1:]]]]) #keeps the common
+                else:
+                    for dir in self.data[token]:
+                        found = False
+                        for opt_dir in optional:
+                            if opt_dir[0] == dir:
+                                opt_dir[0] += 1
+                                found = True
+                        if not found:
+                            optional.append((dir, 1))
+            else:
+                required += self.search(token.body)
 
-print(Clause('(a (b +(c d) e +f) +(g h) i)').tokens)
+        #print(f"Required {required}")
+        #print(f"Optional {optional}")
+
+        if not required:
+            return [dir for dir, occurance in optional]
+        
+        return sorted(required, key=lambda x: max([occurance for dir, occurance in optional if dir == x] or [float('-inf')]), reverse=True) # returns sorted required based on the number of optional indexes
+
 
 directry = '/workspaces/file-system-search-engine/files'
 file_system = FileSystem(directry)
@@ -137,7 +146,13 @@ while searching == 1:
 
     print('Results:\n---------\n')
     for item in file_system.search(query):
-        print(item)
+        with open(f'{item['dir']}/{item['file']}', 'r') as file:
+            print(f"{item['dir']}/{item['file']} {item['line']}  {file.readlines()[item['line']]}")
 
 
     searching = int(input('Search again? (Press 1 as Yes) '))
+
+
+
+
+# MORE WORK NEEDED. FINDS one word SUCCESSFULLY
