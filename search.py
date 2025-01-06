@@ -4,23 +4,28 @@ class FileSystem:
     def __init__(self, directry):
         self.directry = directry
 
-    def search_in_file(filename):
-        with open(file, 'r') as file:
-            cleaned_lines = []
-            for line in file.readlines():
-                cleaned_lines.append(sum([c.lower() for c in line if (c.isalnum() or c == ' ')]).split(' '))
-        print(cleaned_lines)
-        return cleaned_lines
+    def search_in_file(self, filename):
+        with open(filename, 'r') as file:
+            content = file.read()
+            return f"File: {filename}\nContent:\n{content}\n"
+
+    def search_in_folder(self, folder_path):
+        results = []
+        for item in os.listdir(folder_path):
+            item_path = os.path.join(folder_path, item)
+            if os.path.isfile(item_path):
+                results.append(self.search_in_file(item_path)) #base case
+            else:
+                results += self.search_in_folder(item_path) #recursive case           
+        return results
+
     
     def search(self):
-        for filename in os.listdir(self.directry):
-            file_path = os.path.join(self.directry, filename)
-
-            if os.path.isfile(file_path):
-                with open(file_path, 'r') as file:
-                    content = file.read()
-                    print(f"File: {filename}\nContent:\n{content}\n")
+        results = self.search_in_folder(self.directry)
+        return results
 
 
 file_system = FileSystem('/workspaces/file-system-search-engine/files')
-print(file_system.search())
+
+for item in file_system.search():
+    print(item)
